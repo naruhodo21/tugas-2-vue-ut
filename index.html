@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITTA - Sistem Pemesanan Bahan Ajar UT</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a href="index.html" class="navbar-brand"><span>SITTA</span> - UT</a>
+      <ul class="navbar-nav">
+        <li><a href="index.html" class="active">Beranda</a></li>
+        <li><a href="stok.html">Stok Bahan Ajar</a></li>
+        <li><a href="tracking.html">Tracking DO</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="hero">
+      <h1>SITTA</h1>
+      <p>Sistem Informasi Pemesanan dan Distribusi Bahan Ajar<br>Universitas Terbuka</p>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="dash-card">
+        <div class="icon">&#128218;</div>
+        <h3>Total Bahan Ajar</h3>
+        <div class="value">4</div>
+        <p>Judul modul tersedia</p>
+      </div>
+      <div class="dash-card">
+        <div class="icon">&#127961;</div>
+        <h3>UPBJJ</h3>
+        <div class="value">5</div>
+        <p>Unit regional aktif</p>
+      </div>
+      <div class="dash-card">
+        <div class="icon">&#128230;</div>
+        <h3>Paket Tersedia</h3>
+        <div class="value">2</div>
+        <p>Paket bahan ajar</p>
+      </div>
+      <div class="dash-card">
+        <div class="icon">&#128666;</div>
+        <h3>Delivery Order</h3>
+        <div class="value">1</div>
+        <p>DO dalam proses</p>
+      </div>
+    </div>
+
+    <div class="nav-cards">
+      <a href="stok.html" class="nav-card">
+        <h3>&#128218; Manajemen Stok Bahan Ajar</h3>
+        <p>Lihat, cari, filter, dan kelola stok bahan ajar di berbagai UPBJJ. Tambah stok baru dan pantau ketersediaan.</p>
+        <span class="btn btn-primary">Buka Halaman Stok &rarr;</span>
+      </a>
+      <a href="tracking.html" class="nav-card green">
+        <h3>&#128666; Tracking Delivery Order</h3>
+        <p>Lacak status pengiriman bahan ajar berdasarkan nomor Delivery Order. Pantau perjalanan paket secara real-time.</p>
+        <span class="btn btn-success">Buka Halaman Tracking &rarr;</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+</body>
+</html>

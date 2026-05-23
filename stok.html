@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stok Bahan Ajar - SITTA UT</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>SITTA</span> - UT</a>
+        <ul class="navbar-nav">
+          <li><a href="index.html">Beranda</a></li>
+          <li><a href="stok.html" class="active">Stok Bahan Ajar</a></li>
+          <li><a href="tracking.html">Tracking DO</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="container">
+      <!-- Notifikasi -->
+      <div v-if="notif.show" class="alert" :class="'alert-' + notif.type">
+        {{ notif.message }}
+        <button @click="notif.show = false" style="float:right;background:none;border:none;cursor:pointer;font-size:1.1rem;color:inherit;">&times;</button>
+      </div>
+
+      <!-- Ringkasan Stok -->
+      <div class="summary-row">
+        <div class="summary-box">
+          <div class="label">Total Judul</div>
+          <div class="value">{{ ringkasanStok.total }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Total Qty</div>
+          <div class="value">{{ ringkasanStok.totalQty }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label"><span class="status-dot green"></span>Tersedia</div>
+          <div class="value text-success">{{ ringkasanStok.aman }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label"><span class="status-dot yellow"></span>Menipis</div>
+          <div class="value text-warning">{{ ringkasanStok.menipis }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label"><span class="status-dot red"></span>Habis</div>
+          <div class="value text-danger" style="color:#e74c3c">{{ ringkasanStok.habis }}</div>
+        </div>
+      </div>
+
+      <!-- Filter & Pencarian -->
+      <div class="card">
+        <div class="card-title">Filter &amp; Pencarian Stok</div>
+        <div class="filter-bar">
+          <div class="form-group search-box">
+            <label>Cari Kode / Judul</label>
+            <input type="text" v-model="cariJudul" class="form-control" placeholder="Ketik kode atau judul...">
+          </div>
+          <div class="form-group">
+            <label>Kategori</label>
+            <select v-model="filterKategori" class="form-control">
+              <option value="">Semua Kategori</option>
+              <option v-for="k in kategoriList" :value="k">{{ k }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>UPBJJ</label>
+            <select v-model="filterUpbjj" class="form-control">
+              <option value="">Semua UPBJJ</option>
+              <option v-for="u in upbjjList" :value="u">{{ u }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status Stok</label>
+            <select v-model="filterStatus" class="form-control">
+              <option value="">Semua Status</option>
+              <option value="aman">Tersedia (Aman)</option>
+              <option value="menipis">Menipis</option>
+              <option value="habis">Habis</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 12px;">
+          <button class="btn btn-warning btn-sm" @click="resetFilter">Reset Filter</button>
+          <span style="margin-left: 12px; color: #7f8c8d; font-size: 0.85rem;">
+            Ditemukan: <strong>{{ stokFiltered.length }}</strong> dari {{ daftarStok.length }} item
+          </span>
+        </div>
+      </div>
+
+      <!-- Tombol Tambah -->
+      <div style="margin-bottom: 16px;">
+        <button class="btn btn-primary" @click="openAddForm">+ Tambah Bahan Ajar</button>
+      </div>
+
+      <!-- Tabel Stok -->
+      <div class="card">
+        <div class="card-title">Daftar Stok Bahan Ajar</div>
+        <div class="table-wrapper">
+          <table v-if="stokFiltered.length > 0">
+            <thead>
+              <tr>
+                <th @click="sortBy('kode')" style="cursor:pointer">Kode{{ sortIcon('kode') }}</th>
+                <th @click="sortBy('judul')" style="cursor:pointer">Judul{{ sortIcon('judul') }}</th>
+                <th @click="sortBy('kategori')" style="cursor:pointer">Kategori{{ sortIcon('kategori') }}</th>
+                <th @click="sortBy('upbjj')" style="cursor:pointer">UPBJJ{{ sortIcon('upbjj') }}</th>
+                <th @click="sortBy('harga')" style="cursor:pointer">Harga{{ sortIcon('harga') }}</th>
+                <th @click="sortBy('qty')" style="cursor:pointer">Qty{{ sortIcon('qty') }}</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, index) in stokFiltered" :key="item.kode">
+                <td><strong>{{ item.kode }}</strong></td>
+                <td>{{ item.judul }}</td>
+                <td><span class="badge badge-info">{{ item.kategori }}</span></td>
+                <td>{{ item.upbjj }}</td>
+                <td>{{ formatRupiah(item.harga) }}</td>
+                <td>
+                  <strong>{{ item.qty }}</strong>
+                  <span style="color:#aaa;font-size:0.8rem"> / {{ item.safety }}</span>
+                </td>
+                <td>
+                  <!-- v-if / v-else-if / v-else untuk status stok -->
+                  <span v-if="item.qty === 0" class="badge badge-danger">
+                    <span class="status-dot red"></span>Habis
+                  </span>
+                  <span v-else-if="item.qty <= item.safety" class="badge badge-warning">
+                    <span class="status-dot yellow"></span>Menipis
+                  </span>
+                  <span v-else class="badge badge-success">
+                    <span class="status-dot green"></span>Tersedia
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-primary btn-sm" @click="lihatDetail(index)">Detail</button>
+                  <button class="btn btn-warning btn-sm" @click="openEditForm(index)">Edit</button>
+                  <button class="btn btn-danger btn-sm" @click="hapusStok(index)">Hapus</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Empty state dengan v-show -->
+          <div v-show="stokFiltered.length === 0" class="empty-state">
+            <div class="icon">&#128269;</div>
+            <p>Tidak ada data stok yang cocok dengan filter.</p>
+            <button class="btn btn-warning" @click="resetFilter" style="margin-top:12px">Reset Filter</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Form Tambah/Edit -->
+      <div v-if="showForm" class="modal-overlay" @click.self="showForm = false">
+        <div class="modal">
+          <h3>{{ isEditing ? 'Edit Bahan Ajar' : 'Tambah Bahan Ajar Baru' }}</h3>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Kode Bahan Ajar</label>
+              <input type="text" v-model="form.kode" class="form-control" :disabled="isEditing" placeholder="Contoh: EKMA4116">
+              <div v-if="formErrors.kode" class="text-danger">{{ formErrors.kode }}</div>
+            </div>
+            <div class="form-group">
+              <label>Judul</label>
+              <input type="text" v-model="form.judul" class="form-control" placeholder="Judul modul">
+              <div v-if="formErrors.judul" class="text-danger">{{ formErrors.judul }}</div>
+            </div>
+            <div class="form-group">
+              <label>Kategori</label>
+              <select v-model="form.kategori" class="form-control">
+                <option value="">-- Pilih Kategori --</option>
+                <option v-for="k in kategoriList" :value="k">{{ k }}</option>
+              </select>
+              <div v-if="formErrors.kategori" class="text-danger">{{ formErrors.kategori }}</div>
+            </div>
+            <div class="form-group">
+              <label>UPBJJ</label>
+              <select v-model="form.upbjj" class="form-control">
+                <option value="">-- Pilih UPBJJ --</option>
+                <option v-for="u in upbjjList" :value="u">{{ u }}</option>
+              </select>
+              <div v-if="formErrors.upbjj" class="text-danger">{{ formErrors.upbjj }}</div>
+            </div>
+            <div class="form-group">
+              <label>Lokasi Rak</label>
+              <input type="text" v-model="form.lokasiRak" class="form-control" placeholder="Contoh: R1-A3">
+              <div v-if="formErrors.lokasiRak" class="text-danger">{{ formErrors.lokasiRak }}</div>
+            </div>
+            <div class="form-group">
+              <label>Harga (Rp)</label>
+              <input type="number" v-model.number="form.harga" class="form-control" placeholder="65000" min="0">
+              <div v-if="formErrors.harga" class="text-danger">{{ formErrors.harga }}</div>
+            </div>
+            <div class="form-group">
+              <label>Quantity (Qty)</label>
+              <input type="number" v-model.number="form.qty" class="form-control" placeholder="28" min="0">
+              <div v-if="formErrors.qty" class="text-danger">{{ formErrors.qty }}</div>
+            </div>
+            <div class="form-group">
+              <label>Safety Stock</label>
+              <input type="number" v-model.number="form.safety" class="form-control" placeholder="20" min="0">
+              <div v-if="formErrors.safety" class="text-danger">{{ formErrors.safety }}</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Catatan (mendukung HTML)</label>
+            <textarea v-model="form.catatanHTML" class="form-control" rows="2" placeholder="<em>Catatan dalam HTML</em>"></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-danger" @click="showForm = false">Batal</button>
+            <button class="btn btn-success" @click="simpanStok">{{ isEditing ? 'Simpan Perubahan' : 'Tambah Stok' }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Detail -->
+      <div v-if="showDetail && detailItem" class="modal-overlay" @click.self="showDetail = false">
+        <div class="modal">
+          <h3>Detail Bahan Ajar</h3>
+
+          <table style="width:100%;margin-bottom:16px;">
+            <tr>
+              <td style="font-weight:600;width:130px;padding:6px 0;">Kode</td>
+              <td style="padding:6px 0;">{{ detailItem.kode }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Judul</td>
+              <td style="padding:6px 0;">{{ detailItem.judul }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Kategori</td>
+              <td style="padding:6px 0;"><span class="badge badge-info">{{ detailItem.kategori }}</span></td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">UPBJJ</td>
+              <td style="padding:6px 0;">{{ detailItem.upbjj }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Lokasi Rak</td>
+              <td style="padding:6px 0;">{{ detailItem.lokasiRak }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Harga</td>
+              <td style="padding:6px 0;">{{ formatRupiah(detailItem.harga) }}</td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Quantity</td>
+              <td style="padding:6px 0;">
+                <strong>{{ detailItem.qty }}</strong> / Safety: {{ detailItem.safety }}
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Status</td>
+              <td style="padding:6px 0;">
+                <span v-if="detailItem.qty === 0" class="badge badge-danger">Habis</span>
+                <span v-else-if="detailItem.qty <= detailItem.safety" class="badge badge-warning">Menipis</span>
+                <span v-else class="badge badge-success">Tersedia</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;padding:6px 0;">Catatan</td>
+              <td style="padding:6px 0;">
+                <!-- v-html untuk merender HTML dari data -->
+                <span v-html="detailItem.catatanHTML"></span>
+              </td>
+            </tr>
+          </table>
+
+          <!-- v-show untuk informasi tambahan -->
+          <div v-show="detailItem.qty <= detailItem.safety && detailItem.qty > 0" class="alert alert-warning">
+            Stok menipis! Segera lakukan re-order untuk bahan ajar ini.
+          </div>
+          <div v-show="detailItem.qty === 0" class="alert alert-danger">
+            Stok habis! Bahan ajar ini tidak tersedia untuk pemesanan.
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-primary" @click="showDetail = false">Tutup</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <script src="js/dataBahanAjar.js"></script>
+  <script src="js/stok-app.js"></script>
+</body>
+</html>

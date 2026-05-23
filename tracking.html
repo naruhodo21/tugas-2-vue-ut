@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tracking DO - SITTA UT</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="navbar-inner">
+        <a href="index.html" class="navbar-brand"><span>SITTA</span> - UT</a>
+        <ul class="navbar-nav">
+          <li><a href="index.html">Beranda</a></li>
+          <li><a href="stok.html">Stok Bahan Ajar</a></li>
+          <li><a href="tracking.html" class="active">Tracking DO</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="container">
+      <!-- Notifikasi -->
+      <div v-if="notif.show" class="alert" :class="'alert-' + notif.type">
+        {{ notif.message }}
+        <button @click="notif.show = false" style="float:right;background:none;border:none;cursor:pointer;font-size:1.1rem;color:inherit;">&times;</button>
+      </div>
+
+      <!-- Ringkasan Tracking -->
+      <div class="summary-row">
+        <div class="summary-box">
+          <div class="label">Total DO</div>
+          <div class="value">{{ ringkasanTracking.total }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label"><span class="badge badge-purple" style="font-size:0.75rem">Diproses</span></div>
+          <div class="value" style="color:#8e44ad">{{ ringkasanTracking.diproses }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label"><span class="badge badge-info" style="font-size:0.75rem">Dalam Perjalanan</span></div>
+          <div class="value" style="color:#2980b9">{{ ringkasanTracking.dalamPerjalanan }}</div>
+        </div>
+        <div class="summary-box">
+          <div class="label"><span class="badge badge-success" style="font-size:0.75rem">Selesai</span></div>
+          <div class="value text-success">{{ ringkasanTracking.selesai }}</div>
+        </div>
+      </div>
+
+      <!-- Pencarian DO -->
+      <div class="card">
+        <div class="card-title">Cari Delivery Order</div>
+        <div class="filter-bar">
+          <div class="form-group" style="flex:2">
+            <label>Nomor Delivery Order</label>
+            <input type="text" v-model="cariDO" class="form-control" placeholder="Contoh: DO2025-0001" @keyup.enter="cariDeliveryOrder">
+          </div>
+          <div class="form-group" style="flex:0;display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" @click="cariDeliveryOrder">Cari</button>
+          </div>
+          <div class="form-group" style="flex:0;display:flex;align-items:flex-end;">
+            <button class="btn btn-warning" @click="resetPencarian">Reset</button>
+          </div>
+        </div>
+
+        <!-- Hasil pencarian: DO ditemukan -->
+        <div v-if="doDitemukan" style="margin-top:20px;">
+          <div class="alert alert-info">
+            <strong>{{ doDitemukan.kodeDO }}</strong> — {{ doDitemukan.data.nama }} ({{ doDitemukan.data.nim }})
+          </div>
+
+          <div class="summary-row">
+            <div class="summary-box">
+              <div class="label">Paket</div>
+              <div style="font-weight:600;font-size:0.9rem;">{{ getNamaPaket(doDitemukan.data.paket) }}</div>
+            </div>
+            <div class="summary-box">
+              <div class="label">Total</div>
+              <div style="font-weight:700;color:#1a5276;">{{ formatRupiah(doDitemukan.data.total) }}</div>
+            </div>
+            <div class="summary-box">
+              <div class="label">Ekspedisi</div>
+              <div style="font-weight:600;">{{ doDitemukan.data.ekspedisi }}</div>
+            </div>
+            <div class="summary-box">
+              <div class="label">Tgl Kirim</div>
+              <div style="font-weight:600;">{{ formatTanggal(doDitemukan.data.tanggalKirim) }}</div>
+            </div>
+          </div>
+
+          <!-- Status badge -->
+          <div style="margin-bottom:16px;">
+            <strong>Status: </strong>
+            <span v-if="doDitemukan.data.status === 'Diproses'" class="badge badge-purple">{{ doDitemukan.data.status }}</span>
+            <span v-else-if="doDitemukan.data.status === 'Dalam Perjalanan'" class="badge badge-info">{{ doDitemukan.data.status }}</span>
+            <span v-else-if="doDitemukan.data.status === 'Tiba di Tujuan' || doDitemukan.data.status === 'Selesai'" class="badge badge-success">{{ doDitemukan.data.status }}</span>
+            <span v-else class="badge badge-warning">{{ doDitemukan.data.status }}</span>
+          </div>
+
+          <!-- Timeline perjalanan -->
+          <div class="card" style="background:#f8f9fa;">
+            <div class="card-title">Riwayat Perjalanan</div>
+            <div class="timeline">
+              <div v-for="(step, index) in doDitemukan.data.perjalanan"
+                   :key="index"
+                   class="timeline-item"
+                   :class="{ active: index === doDitemukan.data.perjalanan.length - 1 }">
+                <div class="time">{{ step.waktu }}</div>
+                <div class="desc">{{ step.keterangan }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tombol update status -->
+          <div style="margin-top:12px;" v-show="doDitemukan.data.status !== 'Tiba di Tujuan' && doDitemukan.data.status !== 'Selesai'">
+            <button class="btn btn-success" @click="updateStatusDO(doDitemukan.kodeDO)">
+              Update Status (Simulasi)
+            </button>
+          </div>
+        </div>
+
+        <!-- Hasil pencarian: DO tidak ditemukan -->
+        <div v-if="doNotFound" class="empty-state" style="padding:20px;">
+          <div class="icon">&#128533;</div>
+          <p>Nomor DO "<strong>{{ cariDO }}</strong>" tidak ditemukan.</p>
+        </div>
+      </div>
+
+      <!-- Tombol Buat DO Baru -->
+      <div style="margin-bottom:16px;">
+        <button class="btn btn-success" @click="openFormDO">+ Buat Delivery Order Baru</button>
+      </div>
+
+      <!-- Daftar Semua DO -->
+      <div class="card">
+        <div class="card-title">
+          Daftar Delivery Order
+          <select v-model="filterStatus" class="form-control" style="display:inline-block;width:auto;margin-left:12px;padding:5px 10px;font-size:0.85rem;">
+            <option value="">Semua Status</option>
+            <option value="Diproses">Diproses</option>
+            <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+            <option value="Tiba di Tujuan">Tiba di Tujuan</option>
+          </select>
+        </div>
+
+        <div class="table-wrapper">
+          <table v-if="daftarDO.length > 0">
+            <thead>
+              <tr>
+                <th>Kode DO</th>
+                <th>NIM</th>
+                <th>Nama</th>
+                <th>Paket</th>
+                <th>Tgl Kirim</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in daftarDO" :key="item.kodeDO">
+                <td><strong>{{ item.kodeDO }}</strong></td>
+                <td>{{ item.nim }}</td>
+                <td>{{ item.nama }}</td>
+                <td>
+                  <!-- v-text untuk menampilkan nama paket -->
+                  <span v-text="getNamaPaket(item.paket)"></span>
+                </td>
+                <td>{{ formatTanggal(item.tanggalKirim) }}</td>
+                <td>{{ formatRupiah(item.total) }}</td>
+                <td>
+                  <span v-if="item.status === 'Diproses'" class="badge badge-purple">{{ item.status }}</span>
+                  <span v-else-if="item.status === 'Dalam Perjalanan'" class="badge badge-info">{{ item.status }}</span>
+                  <span v-else-if="item.status === 'Tiba di Tujuan'" class="badge badge-success">{{ item.status }}</span>
+                  <span v-else class="badge badge-warning">{{ item.status }}</span>
+                </td>
+                <td>
+                  <button class="btn btn-primary btn-sm" @click="lihatDetailTracking(item.kodeDO)">Lacak</button>
+                  <button class="btn btn-success btn-sm"
+                          v-show="item.status !== 'Tiba di Tujuan' && item.status !== 'Selesai'"
+                          @click="updateStatusDO(item.kodeDO)">Update</button>
+                  <button class="btn btn-danger btn-sm" @click="hapusDO(item.kodeDO)">Hapus</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- v-show untuk empty state -->
+          <div v-show="daftarDO.length === 0" class="empty-state">
+            <div class="icon">&#128230;</div>
+            <p>Belum ada Delivery Order.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Form Buat DO Baru -->
+      <div v-if="showForm" class="modal-overlay" @click.self="showForm = false">
+        <div class="modal" style="max-width:550px;">
+          <h3>Buat Delivery Order Baru</h3>
+
+          <div class="form-group">
+            <label>Kode DO</label>
+            <input type="text" v-model="form.kodeDO" class="form-control" placeholder="Contoh: DO2025-0002">
+            <div v-if="formErrors.kodeDO" class="text-danger">{{ formErrors.kodeDO }}</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>NIM</label>
+              <input type="text" v-model="form.nim" class="form-control" placeholder="Nomor Induk Mahasiswa">
+              <div v-if="formErrors.nim" class="text-danger">{{ formErrors.nim }}</div>
+            </div>
+            <div class="form-group">
+              <label>Nama Mahasiswa</label>
+              <input type="text" v-model="form.nama" class="form-control" placeholder="Nama lengkap">
+              <div v-if="formErrors.nama" class="text-danger">{{ formErrors.nama }}</div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Paket Bahan Ajar</label>
+              <select v-model="form.paket" class="form-control">
+                <option value="">-- Pilih Paket --</option>
+                <option v-for="p in paketList" :value="p.kode">{{ p.nama }} ({{ formatRupiah(p.harga) }})</option>
+              </select>
+              <div v-if="formErrors.paket" class="text-danger">{{ formErrors.paket }}</div>
+            </div>
+            <div class="form-group">
+              <label>Jenis Pengiriman</label>
+              <select v-model="form.jenisKirim" class="form-control">
+                <option v-for="pk in pengirimanList" :value="pk.kode">{{ pk.nama }}</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Total Pembayaran (Rp)</label>
+            <input type="number" v-model.number="form.total" class="form-control" placeholder="120000" min="0">
+            <div v-if="formErrors.total" class="text-danger">{{ formErrors.total }}</div>
+          </div>
+
+          <!-- Preview harga paket saat memilih -->
+          <div v-show="form.paket" class="alert alert-info" style="font-size:0.88rem;">
+            <strong>Harga paket:</strong>
+            <span v-for="p in paketList" :key="p.kode">
+              <span v-if="p.kode === form.paket">{{ formatRupiah(p.harga) }}</span>
+            </span>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-danger" @click="showForm = false">Batal</button>
+            <button class="btn btn-success" @click="simpanDO">Buat DO</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <script src="js/dataBahanAjar.js"></script>
+  <script src="js/tracking-app.js"></script>
+</body>
+</html>
